@@ -10,8 +10,8 @@ public class BlkQueueImpl<T> implements BlkQueue<T> {
     private final LinkedList<T> queue = new LinkedList<>();
     private final int maxSize;
     private final Lock lock = new ReentrantLock();
-    private final Condition notFull = lock.newCondition();
-    private final Condition notEmpty = lock.newCondition();
+    private final Condition full = lock.newCondition();
+    private final Condition empty = lock.newCondition();
 
     public BlkQueueImpl(int maxSize) {
         this.maxSize = maxSize;
@@ -24,10 +24,10 @@ public class BlkQueueImpl<T> implements BlkQueue<T> {
             lock.lock();
             try {
                 while (queue.size() >= maxSize) {
-                    notFull.await();
+                    full.await();
                 }
                 queue.add(message);
-                notEmpty.signal();
+                empty.signal();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } finally {
@@ -41,10 +41,10 @@ public class BlkQueueImpl<T> implements BlkQueue<T> {
         lock.lock();
         try {
             while (queue.isEmpty()) {
-                notEmpty.await();
+                empty.await();
             }
         T message = queue.removeFirst();
-        notFull.signal();
+        full.signal();
         return message;
     } catch(InterruptedException e){
         throw new RuntimeException(e);
